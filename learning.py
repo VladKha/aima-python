@@ -35,6 +35,9 @@ def manhattan_distance(predictions, targets):
 def mean_boolean_error(predictions, targets):
     return mean(int(p != t) for p, t in zip(predictions, targets))
 
+def hamming_distance(predictions, targets):
+    return sum(p != t for p, t in zip(predictions, targets))
+
 # ______________________________________________________________________________
 
 
@@ -150,6 +153,18 @@ class DataSet:
         """Return a copy of example, with non-input attributes replaced by None."""
         return [attr_i if i in self.inputs else None
                 for i, attr_i in enumerate(example)]
+
+    def classes_to_numbers(self,classes=None):
+        """Converts class names to numbers."""
+        if not classes:
+            # If classes were not given, extract them from values
+            classes = sorted(self.values[self.target])
+        for item in self.examples:
+            item[self.target] = classes.index(item[self.target])
+            
+    def remove_examples(self,value=""):
+        """Remove examples that contain given value."""
+        self.examples = [x for x in self.examples if value not in x]
 
     def __repr__(self):
         return '<DataSet({}): {:d} examples, {:d} attributes>'.format(
@@ -361,7 +376,7 @@ def DecisionTreeLearner(dataset):
 
     def count(attr, val, examples):
         """Count the number of examples that have attr = val."""
-        return len(e[attr] == val for e in examples) #count(e[attr] == val for e in examples)
+        return sum(e[attr] == val for e in examples) #count(e[attr] == val for e in examples)
 
     def all_same_class(examples):
         """Are all these examples in the same target class?"""
@@ -434,11 +449,11 @@ def DecisionListLearner(dataset):
 
 
 def NeuralNetLearner(dataset, hidden_layer_sizes=[3],
-                     learning_rate=0.01, epoches=100):
+                     learning_rate=0.01, epochs=100):
     """Layered feed-forward network.
     hidden_layer_sizes: List of number of hidden units per hidden layer
     learning_rate: Learning rate of gradient descent
-    epoches: Number of passes over the dataset
+    epochs: Number of passes over the dataset
     """
 
     i_units = len(dataset.inputs)
@@ -447,7 +462,7 @@ def NeuralNetLearner(dataset, hidden_layer_sizes=[3],
     # construct a network
     raw_net = network(i_units, hidden_layer_sizes, o_units)
     learned_net = BackPropagationLearner(dataset, raw_net,
-                                         learning_rate, epoches)
+                                         learning_rate, epochs)
 
     def predict(example):
 
@@ -510,7 +525,7 @@ def network(input_units, hidden_layer_sizes, output_units):
     return net
 
 
-def BackPropagationLearner(dataset, net, learning_rate, epoches):
+def BackPropagationLearner(dataset, net, learning_rate, epochs):
     """[Figure 18.23] The back-propagation algorithm for multilayer network"""
     # Initialise weights
     for layer in net:
@@ -530,7 +545,7 @@ def BackPropagationLearner(dataset, net, learning_rate, epoches):
     o_nodes = net[-1]
     i_nodes = net[0]
 
-    for epoch in range(epoches):
+    for epoch in range(epochs):
         # Iterate over each example
         for e in examples:
             i_val = [e[i] for i in idx_i]
@@ -583,13 +598,13 @@ def BackPropagationLearner(dataset, net, learning_rate, epoches):
     return net
 
 
-def PerceptronLearner(dataset, learning_rate=0.01, epoches=100):
+def PerceptronLearner(dataset, learning_rate=0.01, epochs=100):
     """Logistic Regression, NO hidden layer"""
     i_units = len(dataset.inputs)
     o_units = 1  # As of now, dataset.target gives only one index.
     hidden_layer_sizes = []
     raw_net = network(i_units, hidden_layer_sizes, o_units)
-    learned_net = BackPropagationLearner(dataset, raw_net, learning_rate, epoches)
+    learned_net = BackPropagationLearner(dataset, raw_net, learning_rate, epochs)
 
     def predict(example):
         # Input nodes
